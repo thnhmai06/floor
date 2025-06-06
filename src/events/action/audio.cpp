@@ -15,7 +15,7 @@ namespace Floor::Events::Action
 			finished = true;
 		}
 		PlayEffectAction::PlayEffectAction(const Buses::Bus<Effect>& target, const Timing::Time& time,
-			Memory::EffectMemory::Item sound, const std::optional<double> volume)
+			Memory::Item<Effect> sound, const std::optional<double> volume)
 		: target(&target), sound(std::move(sound)), volume(volume)
 		{
 			start_time = end_time = time;

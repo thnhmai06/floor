@@ -5,48 +5,33 @@
 
 namespace Floor::Audio::Memory
 {
-	//! MusicMemory
-	// ::Item
-	void MusicMemory::Item::reset()
+	//! Memory<Music>
+	Item<Music> Memory<Music>::find(const std::string& name) const
 	{
-		if (parent) item = parent->items.end();
-		parent = nullptr;
-	}
-	bool MusicMemory::Item::is_valid() const
-	{
-		return (parent && item != parent->items.end() && item->second);
-	}
-	MusicMemory::Item::Item(const MusicMemory* parent, Container::const_iterator item)
-		: parent(parent), item(std::move(item))
-	{
-	}
-	// ::
-	MusicMemory::Item MusicMemory::find(const std::string& name) const
-	{
-		if (const auto& it = items.find(name); it != items.end())
-			return { this, it };
+		if (const auto& itr = items.find(name); itr != items.end())
+			return { this, itr };
 		return { nullptr, items.end() };
 	}
-	void MusicMemory::free(const std::string& name)
+	void Memory<Music>::free(const std::string& name)
 	{
-		if (const auto it = items.find(name); it != items.end())
+		if (const auto itr = items.find(name); itr != items.end())
 		{
-			Mix_FreeMusic(it->second);
-			items.erase(it);
+			Mix_FreeMusic(itr->second);
+			items.erase(itr);
 		}
 	}
-	void MusicMemory::free(const Item& item)
+	void Memory<Music>::free(const Item<Music>& item)
 	{
 		if (item.is_valid() && item.parent == this)
-			free(item.item->first);
+			free(item.itr->first);
 	}
-	void MusicMemory::free_all()
+	void Memory<Music>::free()
 	{
-		for (const auto& val : items | std::views::values)
-			Mix_FreeMusic(val);
+		for (const auto& music : items | std::views::values)
+			Mix_FreeMusic(music);
 		items.clear();
 	}
-	MusicMemory::Item MusicMemory::load(const std::filesystem::path& file_path, const std::string& name, const bool override)
+	Item<Music> Memory<Music>::load(const std::filesystem::path& file_path, const std::string& name, const bool override)
 	{
 		if (!override && items.contains(name))
 			return {};
@@ -56,56 +41,39 @@ namespace Floor::Audio::Memory
 
 		return { this, items.insert_or_assign(name, audio).first };
 	}
-	MusicMemory::~MusicMemory() { free_all(); }
+	Memory<Music>::~Memory() { free(); }
 
-	//! EffectMemory
-	// ::Item
-	EffectMemory::Item::Item(const EffectMemory* parent, Container::const_iterator item)
-		: parent(parent), item(std::move(item))
+	//! Memory<Effect>
+	Item<Effect> Memory<Effect>::find(const std::string& name) const
 	{
-	}
-	void EffectMemory::Item::reset()
-	{
-		if (parent) item = parent->items.end();
-		parent = nullptr;
-	}
-	bool EffectMemory::Item::is_valid() const
-	{
-		return (parent && item != parent->items.end() && item->second);
-	}
-
-	//::
-	std::unordered_set<std::string_view> EffectMemory::SUPPORT_EXTENSIONS = { ".wav", ".mp3", ".ogg" };
-	EffectMemory::Item EffectMemory::find(const std::string& name) const
-	{
-		if (const auto& it = items.find(name); it != items.end())
-			return { this, it };
+		if (const auto& itr = items.find(name); itr != items.end())
+			return { this, itr };
 
 		return { nullptr, items.end() };
 	}
-	void EffectMemory::free(const std::string& name)
+	void Memory<Effect>::free(const std::string& name)
 	{
-		if (const auto it = items.find(name); it != items.end())
+		if (const auto itr = items.find(name); itr != items.end())
 		{
-			Mix_FreeChunk(it->second);
-			items.erase(it);
+			Mix_FreeChunk(itr->second);
+			items.erase(itr);
 		}
 	}
-	void EffectMemory::free(Item& item)
+	void Memory<Effect>::free(Item<Effect>& item)
 	{
 		if (item.is_valid() && item.parent == this)
 		{
-			free(item.item->first);
+			free(item.itr->first);
 			item.reset();
 		}
 	}
-	void EffectMemory::free_all()
+	void Memory<Effect>::free()
 	{
-		for (const auto& val : items | std::views::values)
-			Mix_FreeChunk(val);
+		for (const auto& effect : items | std::views::values)
+			Mix_FreeChunk(effect);
 		items.clear();
 	}
-	EffectMemory::Item EffectMemory::load(const std::filesystem::path& file_path, const std::string& name, const bool override)
+	Item<Effect> Memory<Effect>::load(const std::filesystem::path& file_path, const std::string& name, const bool override)
 	{
 		if (!override && items.contains(name))
 			return {};
@@ -115,11 +83,12 @@ namespace Floor::Audio::Memory
 
 		return { this, items.insert_or_assign(name, audio).first };
 	}
-	void EffectMemory::load(
+	void Memory<Effect>::load(
 		const std::filesystem::path& folder_path,
-		const std::filesystem::path& root,
-		const bool no_except,
-		const bool recursive, const bool name_has_extension, const bool relative_path_name, const bool override,
+		const std::filesystem::path& root_folder_path,
+		const bool no_except, const bool recursive,
+		const bool name_has_extension, const bool name_is_filename, const bool override,
+		const std::unordered_set<std::string>& only_extensions,
 		const std::unordered_set<std::filesystem::path>& blacklist)
 	{
 		if (std::filesystem::exists(folder_path) && std::filesystem::is_directory(folder_path))
@@ -127,27 +96,29 @@ namespace Floor::Audio::Memory
 			for (const auto& entry : std::filesystem::recursive_directory_iterator(folder_path))
 			{
 				if (recursive && std::filesystem::is_directory(entry))
-					load(entry, root, no_except, recursive, name_has_extension, relative_path_name, override, blacklist);
+					load(entry, root_folder_path, no_except, recursive,
+						name_has_extension, name_is_filename, override, only_extensions, blacklist);
 				else if (std::filesystem::is_regular_file(entry))
 				{
-					const auto extension = entry.path().extension().string();
-					if (!SUPPORT_EXTENSIONS.contains(extension)) continue;
-
-					std::filesystem::path path_name = entry.path().lexically_relative(root);
-					if (!relative_path_name)
-						path_name = path_name.filename();
-					if (!name_has_extension)
-						path_name.replace_extension();
-					const auto name = path_name.generic_string();
-
-					if (blacklist.contains(name))
+					// Make name
+					auto name_path = entry.path().lexically_relative(root_folder_path);
+					if (const auto extension = entry.path().extension().string();
+						!only_extensions.empty() && !only_extensions.contains(extension))
 						continue;
+					if (name_is_filename)
+						name_path = name_path.filename();
+					if (!name_has_extension)
+						name_path.replace_extension();
+					const auto name = name_path.generic_string();
+
+					// Add item
+					if (blacklist.contains(name)) continue;
 					if (!override && items.contains(name)) continue;
 					try
 					{
 						load(entry, name);
 					}
-					catch (const Exceptions::SDL_Exception& e)
+					catch (const Exceptions::SDL_Exception&)
 					{
 						if (!no_except) throw;
 					}
@@ -155,5 +126,5 @@ namespace Floor::Audio::Memory
 			}
 		}
 	}
-	EffectMemory::~EffectMemory() { free_all(); }
+	Memory<Effect>::~Memory() { free(); }
 }

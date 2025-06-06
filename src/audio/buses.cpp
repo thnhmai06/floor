@@ -1,7 +1,6 @@
 ﻿#include "floor/audio/buses.h" // Header
 #include "floor/audio/mixer.h"
 #include "floor/exceptions.h"
-#include "floor/utilities.h"
 
 namespace Floor::Audio::Buses
 {
@@ -23,46 +22,44 @@ namespace Floor::Audio::Buses
         set_percent(percent);
     }
 
-    void Bus<Mix_Music*>::Volume::set()
-    {
-        set(get());
-    }
+    void Bus<Mix_Music*>::Volume::set() { set(get()); }
 
     Bus<Mix_Music*>::Volume::Volume(const double& percent)
-        : PercentValue(0, MIX_MAX_VOLUME, percent, true, &Mixer::volume)
+        : PercentValue(0, MIX_MAX_VOLUME, percent, true, Mixer::volume.get())
     {
     }
 
     // ::
-    void Bus<Music>::play(const MusicMemory::Item& music, const bool pause, const int loops)
+    bool Bus<Music>::play(const Item<Music>& music, const bool pause, const int loops)
     {
-        if (!music.is_valid()) return;
+        if (!music.is_valid()) return false;
 
         if (has_song()) stop();
-        Mix_PlayMusic(music.item->second, loops);
+        Mix_PlayMusic(music.itr->second, loops);
         volume.set(); // chỉ set được volume khi có nhạc đang phát
         if (pause)
         {
             Bus::pause();
             seek(0);
         }
-        current = music;
+        current_music = music;
+        return true;
     }
 
     bool Bus<Music>::has_song() { return Mix_PlayingMusic() != 0; }
     bool Bus<Music>::is_playing() { return has_song() && !Mix_PausedMusic(); }
 
-    const MusicMemory::Item& Bus<Music>::get_current()
+    const Item<Music>& Bus<Music>::get_current_music()
     {
         if (!has_song())
-            current.reset();
-        return current;
+            current_music.reset();
+        return current_music;
     }
 
     Events::Timing::Time Bus<Music>::get_position()
     {
-        if (const auto current = get_current(); current.is_valid())
-            return static_cast<Events::Timing::Time>(std::round(Mix_GetMusicPosition(current.item->second) * 1000.0));
+        if (const auto current = get_current_music(); current.is_valid())
+            return static_cast<Events::Timing::Time>(std::round(Mix_GetMusicPosition(current.itr->second) * 1000.0));
         return -1;
     }
 
@@ -79,91 +76,63 @@ namespace Floor::Audio::Buses
     void Bus<Music>::stop()
     {
         Mix_HaltMusic();
-        current.reset();
+        current_music.reset();
     }
 
     Bus<Music>::Bus(const double& volume) { this->volume.set(volume); }
     Bus<Music>::~Bus() { stop(); }
 
-    //! Bus<Effects>
-    double Bus<Effect>::get_channel_volume(const int& channel) const
+
+    //! Bus<Effect>
+    // ::Volume
+    double Bus<Effect>::Volume::get(const int& channel) const
     {
-        const auto value = Mix_Volume(channel, -1);
-        const auto percent = volume.get_percent(value);
-        const auto bus_volume = volume.get();
-
-        return sound_volume.get_percent(true, static_cast<uint8_t>(value));
-    }
-
-    double Bus<Effect>::set_volume(const double& percent)
-    {
-        const double previous_volume = get_channel_volume();
-        const auto channel_num = Mix_AllocateChannels(-1);
-        std::vector<double> volume_percent(channel_num);
-        for (int channel = 0; channel < channel_num; ++channel)
-            volume_percent[channel] = get_channel_volume(channel);
-
-        volume.percent = std::clamp(percent, 0.0, 1.0);
-        for (int channel = 0; channel < channel_num; ++channel)
-            set_volume(channel, volume_percent[channel]);
-        return previous_volume;
-    }
-
-    double Bus<Effect>::set_volume(const EffectMemory::Item& sound, double percent) const
-    {
-        if (!sound.is_valid()) return -1;
-        percent = std::clamp(percent, 0.0, 1.0);
-
-        const auto vl = Mix_VolumeChunk(sound.item->second, sound_volume.get_value(true, percent));
-        if (vl < 0)
-        {
-            LOG_ERROR(Logging::Exceptions::Engine::Audio::SDL_Audio_SetEffectVolume_Failed(sound.item->first, percent));
-            return -1;
-        }
-
-        return sound_volume.get_percent(true, static_cast<uint8_t>(vl));
-    }
-
-    double Bus<Effect>::set_volume(const int& channel, double percent) const
-    {
-        percent = std::clamp(percent, 0.0, 1.0);
-
-        const auto vl = Mix_Volume(channel, sound_volume.get_value(true, percent));
-        if (vl < 0)
-        {
-            LOG_ERROR(Logging::Exceptions::Engine::Audio::SDL_Audio_SetEffectVolume_Failed(channel, percent));
-            return -1;
-        }
-
-        return sound_volume.get_percent(true, static_cast<uint8_t>(vl));
-    }
-
-    int Bus<Effect>::play(const EffectMemory::Item& sound, const std::optional<double>& volume) const
-    {
-        if (!sound.is_valid()) return -1;
-
-        const int32_t channel = Mix_PlayChannel(-1, sound.item->second, 0);
         if (channel < 0)
-        {
-            LOG_ERROR(Logging::Exceptions::Engine::Audio::SDL_Audio_PlayEffect_Failed(sound.item->first));
-        }
+            return get_percent();
+        const auto value = Mix_Volume(channel, -1);
+        return channel_volume.get_percent(value);
+    }
+
+    void Bus<Effect>::Volume::set(const double& percent, const int& channel)
+    {
+        if (channel < 0)
+            set_percent(percent);
         else
         {
-            set_volume(channel, volume.value_or(1.0));
+            const auto new_value = channel_volume.get_value(percent);
+            Mix_Volume(channel, new_value);
         }
+    }
+
+    void Bus<Effect>::Volume::set() { set(get()); }
+
+    Bus<Effect>::Volume::Volume(const double& percent)
+        : PercentValue(0, MIX_MAX_VOLUME, percent, true, Mixer::volume.get())
+    {
+    }
+
+    // ::
+    int Bus<Effect>::play(const Item<Effect>& sound, const double& volume)
+    {
+        if (!sound.is_valid()) return -1;
+
+        const auto channel = Mix_PlayChannel(-1, sound.itr->second, 0);
+        if (channel < 0)
+            throw Exceptions::SDL_Exception();
+        this->volume.set(volume, channel);
         return channel;
     }
 
-    void Bus<Mix_Chunk*>::stop(const int& channel)
+    void Bus<Effect>::stop(const int& channel)
     {
         Mix_HaltChannel(channel);
     }
 
     Bus<Effect>::Bus(const double& volume, const int& max_channels)
+        : volume(volume)
     {
         Mix_AllocateChannels(max_channels);
-
-        sound_volume.parent = &this->volume;
-        set_volume(volume);
     }
+
+    Bus<Effect>::~Bus() { stop(); }
 }

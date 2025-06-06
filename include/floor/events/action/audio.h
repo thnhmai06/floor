@@ -12,7 +12,7 @@ namespace Floor::Events::Action
 		struct PlayEffectAction : Action
 		{
 			const Buses::Bus<Effect>* target;
-			Memory::EffectMemory::Item sound;
+			Memory::Item<Effect> sound;
 			std::optional<double> volume;
 
 			[[nodiscard]] std::shared_ptr<Action> clone() const override;
@@ -20,7 +20,7 @@ namespace Floor::Events::Action
 
 			explicit PlayEffectAction(
 				const Buses::Bus<Effect>& target, const Timing::Time& time,
-				Memory::EffectMemory::Item sound, std::optional<double> volume = std::nullopt);
+				Memory::Item<Effect> sound, std::optional<double> volume = std::nullopt);
 		};
 	}
 }
