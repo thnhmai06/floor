@@ -1,6 +1,7 @@
 {
+  "name": "floor",
+  "version": "1.0.0",
   "dependencies": [
-    "bit7z",
     "sdl3",
     {
       "name": "sdl3-image",
@@ -10,8 +11,6 @@
         "tiff",
         "webp"
       ]
-    },
-    "spdlog",
-    "inih"
+    }
   ]
 }

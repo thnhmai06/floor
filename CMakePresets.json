@@ -1,0 +1,71 @@
+{
+  "version": 9,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/out/${presetName}",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "x64-linux-dbg",
+      "inherits": "base",
+      "displayName": "Linux x64 (Debug)",
+      "architecture": {
+        "value": "x86_64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-linux-rel",
+      "inherits": "x64-linux-dbg",
+      "displayName": "Linux x64 (Release)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "x64-windows-dbg",
+      "inherits": "base",
+      "displayName": "Windows x64 (Debug)",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS": "TRUE"
+      }
+    },
+    {
+      "name": "x64-windows-rel",
+      "inherits": "x64-windows-dbg",
+      "displayName": "Windows x64 (Release)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "x64-osx-dbg",
+      "inherits": "x64-linux-dbg",
+      "displayName": "macOS x64 (Debug)"
+    },
+    {
+      "name": "x64-osx-rel",
+      "inherits": "x64-linux-rel",
+      "displayName": "macOS x64 (Release)"
+    }
+  ]
+}

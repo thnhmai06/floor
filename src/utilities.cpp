@@ -1,9 +1,9 @@
-#include "utilities.h" // Header
+#include "floor/utilities.h" // Header
 #include <cmath>
 #include <iomanip>
 #include <numbers>
 
-namespace Utilities
+namespace Floor::Utilities
 {
 	namespace Math
 	{
@@ -155,7 +155,7 @@ namespace Utilities
 			const auto now = std::chrono::system_clock::now();
 			const auto time_t_now = std::chrono::system_clock::to_time_t(now);
 
-			std::tm local_time;
+			std::tm local_time{};
 #ifdef _WIN32
 			if (localtime_s(&local_time, &time_t_now) != 0) return {};
 #else
@@ -242,7 +242,7 @@ namespace Utilities
 			return Math::in_range(rect.x, rect.x + rect.w, point.x)
 				&& Math::in_range(rect.y, rect.y + rect.h, point.y);
 		}
-		SDL_Color to_sdl_color(const Engine::Render::Color& color, const uint8_t& alpha)
+		SDL_Color to_sdl_color(const Floor::Render::Color& color, const uint8_t& alpha)
 		{
 			return { color.r, color.g, color.b, alpha };
 		}

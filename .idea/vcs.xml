@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/vcpkg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/flac" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/libgme" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/libxmp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/mpg123" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/ogg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/opus" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/opusfile" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/tremor" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/vorbis" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/SDL3_mixer/external/wavpack" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/easing_functions" vcs="Git" />
+  </component>
+</project>

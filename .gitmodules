@@ -1,9 +1,7 @@
-[submodule "dependencies/osu-parser"]
-	path = dependencies/osu-parser
-	url = https://github.com/thnhmai06/osu-parser.git
-[submodule "dependencies/SDL_mixer-build"]
-	path = dependencies/SDL_mixer-build
-	url = https://github.com/thnhmai06/SDL_mixer-build.git
-[submodule "dependencies/easing"]
-	path = dependencies/easing
+[submodule "dependencies/SDL3_mixer"]
+	path = dependencies/SDL3_mixer
+	url = https://github.com/libsdl-org/SDL_mixer.git
+[submodule "dependencies/easing_functions"]
+	path = dependencies/easing_functions
 	url = https://github.com/thnhmai06/easing-functions.git
+	branch = master
