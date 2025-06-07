@@ -67,5 +67,31 @@
       "inherits": "x64-linux-rel",
       "displayName": "macOS x64 (Release)"
     }
+  ],
+  "buildPresets": [
+    {
+      "name": "x64-linux-dbg",
+      "configurePreset": "x64-linux-dbg"
+    },
+    {
+      "name": "x64-linux-rel",
+      "configurePreset": "x64-linux-rel"
+    },
+    {
+      "name": "x64-windows-dbg",
+      "configurePreset": "x64-windows-dbg"
+    },
+    {
+      "name": "x64-windows-rel",
+      "configurePreset": "x64-windows-rel"
+    },
+    {
+      "name": "x64-osx-dbg",
+      "configurePreset": "x64-osx-dbg"
+    },
+    {
+      "name": "x64-osx-rel",
+      "configurePreset": "x64-osx-rel"
+    }
   ]
 }
