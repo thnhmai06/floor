@@ -26,10 +26,11 @@ namespace Floor::Audio
     }
 
     // ::
-    void Mixer::stop_all()
+    const bool& Mixer::is_initialized() { return initialized; }
+    void Mixer::stop()
     {
         music->stop();
-        Buses::Bus<Effect>::stop();
+        Bus<Effect>::stop();
     }
 
     void Mixer::init(const MIX_InitFlags& flags, const SDL_AudioSpec& spec,
@@ -43,8 +44,8 @@ namespace Floor::Audio
 
         const auto& [v_master, v_music, v_effects] = volumes;
         volume = std::make_unique<Volume>(v_master);
-        music = std::make_unique<Buses::Bus<Music>>(v_music);
-        effects = std::make_unique<Buses::Bus<Effect>>(v_effects, max_channels);
+        music = std::make_unique<Bus<Music>>(v_music);
+        effects = std::make_unique<Bus<Effect>>(v_effects, max_channels);
 
         initialized = true;
     }

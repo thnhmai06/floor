@@ -3,11 +3,8 @@
 
 namespace Floor::Audio
 {
-    using Buses::Bus;
-
     struct Mixer final
     {
-        static inline bool initialized = false;
         static std::unique_ptr<Bus<Music>> music;
         static std::unique_ptr<Bus<Effect>> effects;
 
@@ -28,13 +25,17 @@ namespace Floor::Audio
             explicit Volume(const double& volume = 1.0);
         };
 
+    protected:
+        static inline bool initialized = false;
+
     public:
         static std::unique_ptr<Volume> volume;
 
-        static void stop_all();
+        static const bool& is_initialized();
         static void init(const MIX_InitFlags& flags, const SDL_AudioSpec& spec,
                          const std::tuple<double, double, double>& volumes = {1, 1, 1},
                          const int& max_channels = 8, const SDL_AudioDeviceID& device = 0);
+        static void stop();
         static void quit();
 
         Mixer() = delete;

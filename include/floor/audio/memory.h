@@ -3,77 +3,64 @@
 #include <unordered_map>
 #include <filesystem>
 #include <unordered_set>
+
 #include "floor/audio/type.h"
 
-namespace Floor::Audio::Memory
+namespace fs = std::filesystem;
+
+namespace Floor::Audio
 {
-    template <AudioTypename AudioType>
-    struct Memory;
+    template <AudioTypename Audio>
+    using Memory = std::unordered_map<std::string, Audio>;
 
-    template <AudioTypename AudioType>
-    struct Item;
-
-    template <>
-    struct Memory<Music>
+    template <AudioTypename Audio>
+    std::unordered_set<std::string> load_multiple(
+        Memory<Audio>& target,
+        const fs::path& folder_path,
+        const fs::path& root_path,
+        const bool no_except = false, const bool recursive = true,
+        const bool name_has_extension = false, const bool name_is_filename = true, const bool override = true,
+        const std::unordered_set<std::string>& only_extensions = {},
+        const std::unordered_set<std::string>& blacklist = {})
     {
-        using Container = std::unordered_map<std::string, Music>;
-
-        Container items;
-
-        [[nodiscard]] Item<Music> find(const std::string& name) const;
-        Item<Music> load(const std::filesystem::path& file_path, const std::string& name, bool override = true);
-        void free(const std::string& name);
-        void free(const Item<Music>& item);
-        void free();
-
-        ~Memory();
-    };
-
-    template <>
-    struct Memory<Effect>
-    {
-        using Container = std::unordered_map<std::string, Effect>;
-
-        Container items;
-
-        [[nodiscard]] Item<Effect> find(const std::string& name) const;
-        Item<Effect> load(const std::filesystem::path& file_path, const std::string& name, bool override = true);
-        void load(
-            const std::filesystem::path& folder_path,
-            const std::filesystem::path& root_folder_path,
-            bool no_except = true, bool recursive = true,
-            bool name_has_extension = false, bool name_is_filename = true,
-            bool override = true,
-            const std::unordered_set<std::string>& only_extensions = {},
-            const std::unordered_set<std::filesystem::path>& blacklist = {});
-        void free(const std::string& name);
-        void free(Item<Effect>& item);
-        void free();
-
-        ~Memory();
-    };
-
-    template <AudioTypename AudioType>
-    struct Item
-    {
-        const Memory<AudioType>* parent = nullptr;
-        typename Memory<AudioType>::Container::const_iterator itr{};
-
-        [[nodiscard]] bool is_valid() const
+        std::unordered_set<std::string> loaded{};
+        if (fs::exists(folder_path) && fs::is_directory(folder_path))
         {
-            return (parent && itr != parent->items.end() && itr->second);
+            for (const auto& entry : fs::recursive_directory_iterator(folder_path))
+            {
+                if (recursive && fs::is_directory(entry))
+                {
+                    loaded.merge(load_multiple(target, entry, root_path, no_except, recursive,
+                                               name_has_extension, name_is_filename, override, only_extensions,
+                                               blacklist));
+                }
+                else if (fs::is_regular_file(entry))
+                {
+                    // Make name
+                    auto name_path = entry.path().lexically_relative(root_path);
+                    if (const auto extension = entry.path().extension().string();
+                        !only_extensions.empty() && !only_extensions.contains(extension))
+                        continue;
+                    if (name_is_filename)
+                        name_path = name_path.filename();
+                    if (!name_has_extension)
+                        name_path.replace_extension();
+                    const auto name = name_path.generic_string();
+
+                    // Add item
+                    if (blacklist.contains(name)) continue;
+                    if (!override && target.contains(name)) continue;
+                    try
+                    {
+                        target.insert(name, load<Audio>(entry.path()));
+                    }
+                    catch (const Exceptions::SDL_Exception&)
+                    {
+                        if (!no_except) throw;
+                    }
+                }
+            }
         }
-
-        void reset()
-        {
-            itr = Memory<AudioType>::Container::const_iterator();
-            parent = nullptr;
-        };
-
-        Item() = default;
-        Item(const Memory<AudioType>* parent, typename Memory<AudioType>::Container::const_iterator item)
-            : parent(parent), itr(std::move(item))
-        {
-        }
-    };
+        return loaded;
+    }
 }
