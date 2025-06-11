@@ -55,7 +55,7 @@ namespace Floor::Render::Object
 			const Alphabet* alphabet,
 			const SDL_FPoint& render_pos,
 			const SDL_FPoint& character_render_size,
-			const OriginPoint& custom_origin)
+			const AnchorPoint& custom_origin)
 			: HorizontalString(&raw_string, skin, alphabet, render_pos,
 				character_render_size, custom_origin),
 			number(number)

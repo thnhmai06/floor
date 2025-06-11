@@ -3,6 +3,8 @@
 
 namespace Floor::Render::Object
 {
+	using Alphabet = std::unordered_map<char, std::string>;
+
 	struct HorizontalString : Collection
 	{
 		const std::string* string;
@@ -25,7 +27,7 @@ namespace Floor::Render::Object
 			const Alphabet* alphabet,
 			const SDL_FPoint& render_pos,
 			const SDL_FPoint& character_render_size,
-			const OriginType& origin_type = OriginType::Centre);
+			const AnchorLocation& origin_type = AnchorLocation::Centre);
 		HorizontalString(
 			const std::string* string,
 			const Memory* skin,
@@ -45,7 +47,7 @@ namespace Floor::Render::Object
 			const Alphabet* alphabet,
 			const SDL_FPoint& render_pos,
 			const SDL_FPoint& character_render_size,
-			const OriginType& origin_type = OriginType::Centre);
+			const AnchorLocation& origin_type = AnchorLocation::Centre);
 		StaticHorizontalString(
 			std::string string,
 			const Memory* skin,

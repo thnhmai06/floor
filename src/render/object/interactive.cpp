@@ -24,7 +24,7 @@ namespace Floor::Render::Object
 		Memory::Item texture,
 		const Events::Event::External::Buffer& event_buffer,
 		std::shared_ptr<Events::Condition::External::Condition> condition,
-		const OriginType& origin_type, const SDL_FPoint& render_pos,
+		const AnchorLocation& origin_type, const SDL_FPoint& render_pos,
 		std::function<void(Object* object, const Events::Event::External::Event& event)> on_event)
 		: Object(std::move(texture), origin_type, render_pos),
 		event_buffer(&event_buffer), condition(std::move(condition)), on_event(std::move(on_event))
@@ -35,7 +35,7 @@ namespace Floor::Render::Object
 		Memory::Item texture,
 		const Events::Event::External::Buffer& event_buffer,
 		std::shared_ptr<Events::Condition::External::Condition> condition,
-		const Config::OriginPoint& custom_origin, const SDL_FPoint& render_pos,
+		const Config::AnchorPoint& custom_origin, const SDL_FPoint& render_pos,
 		std::function<void(Object* object, const Events::Event::External::Event& event)> on_event)
 		: Object(std::move(texture), custom_origin, render_pos),
 		event_buffer(&event_buffer), condition(std::move(condition)), on_event(std::move(on_event))

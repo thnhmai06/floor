@@ -1,190 +1,228 @@
 ﻿#include "floor/render/object.h" // Header
-#include "logging/logger.h"
-#include "floor/utilities.h"
-#include "logging/exceptions.h"
 
-namespace Floor::Render::Object
+#include "floor/exceptions.h"
+
+namespace Floor::Render
 {
-	//! Object
-	SDL_FRect Object::get_sdl_src_rect() const
-	{
-		const auto [src_w, src_h] = src.get_size();
-		return { src_w * src_rect_in_percent.x, src_h * src_rect_in_percent.y, src_w * src_rect_in_percent.w, src_h * src_rect_in_percent.h };
-	}
-	SDL_FRect Object::get_sdl_dst_rect() const
-	{
-		return config.get_sdl_dst_rect(Floor::Utilities::Render::get_size_from_rect(get_sdl_src_rect()));
-	}
-	void Object::set_render_size(const SDL_FPoint& size)
-	{
-		config.set_render_size(size, Floor::Utilities::Render::get_size_from_rect(get_sdl_src_rect()));
-	}
-	void Object::set_render_size(const float& value)
-	{
-		set_render_size({ value, value });
-	}
-	OriginPoint Object::translate_origin_type_to_point(const OriginType& origin_type, const bool based_on_render_size) const
-	{
-		if (!based_on_render_size)
-		{
-			const auto src_size = Floor::Utilities::Render::get_size_from_rect(get_sdl_src_rect());
-			return OriginPoint::translate_origin_type_to_point(origin_type, src_size);
-		}
-		const auto render_size = Floor::Utilities::Render::get_size_from_rect(get_sdl_dst_rect());
-		return OriginPoint::translate_origin_type_to_point(origin_type, render_size);
-	}
-	void Object::update_origin_point(const OriginPoint& custom_origin, const bool move_render_pos, const bool based_on_render_size)
-	{
-		const auto previous_origin = config.get_origin_point();
-		config.set_origin_point(custom_origin, based_on_render_size);
-		if (move_render_pos)
-			config.render_pos = config.get_origin_point().convert_pos_from_origin(config.render_pos, previous_origin);
-	}
-	void Object::update_origin_point(const OriginType& origin_type, const bool move_render_pos)
-	{
-		update_origin_point(translate_origin_type_to_point(origin_type, false), move_render_pos, false);
-	}
-	Object::Object(
-		Memory::Item texture,
-		const OriginType& origin_type,
-		const SDL_FPoint& render_pos) :
-		src(std::move(texture))
-	{
-		update_origin_point(origin_type, false);
-		config.render_pos = render_pos;
-	}
-	Object::Object(
-		Memory::Item texture,
-		const OriginPoint& custom_origin,
-		const SDL_FPoint& render_pos) :
-		src(std::move(texture)), config(render_pos, custom_origin)
-	{
-	}
+    //! Object
+    SDL_FRect Object::get_src_rect() const
+    {
+        const auto shared = Utilities::Pointer::check_weak(src);
+        if (!shared) return {0, 0, 0, 0};
 
-	//! Collection
-	void Collection::for_each_item(
-		const std::function<bool(Container::reference& item)>& function,
-		const bool no_duplicate)
-	{
-		std::unordered_set<void*> completed{};
+        const auto [w, h] = get_size(shared);
+        const auto& [s_x, s_y, s_w, s_h] = config.src_rect;
+        return {w * s_x, h * s_y, w * s_w, h * s_h};
+    }
 
-		if (range.empty())
-		{
-			auto itr = data.begin();
-			while (itr != data.end())
-			{
-				if (!function(*itr))
-					itr = data.erase(itr);
-				else ++itr;
-			}
-		}
-		else for (auto& [from, to] : range)
-		{
-			static constexpr auto get_ptr = [](const Container::value_type& item) -> void*
-			{
-				if (std::holds_alternative<std::shared_ptr<Object>>(item))
-					return std::get<std::shared_ptr<Object>>(item).get();
-				if (std::holds_alternative<std::shared_ptr<Collection>>(item))
-					return std::get<std::shared_ptr<Collection>>(item).get();
-				return nullptr;
-			};
+    SDL_FRect Object::get_dst_rect(const SDL_FPoint& parent) const
+    {
+        return config.get_dst_rect(Utilities::Render::get_size_from_rect(get_src_rect()), parent);
+    }
 
-			auto itr = from;
-			while (itr != data.end())
-			{
-				const auto ptr = get_ptr(*itr);
-				if (no_duplicate && completed.contains(ptr)) continue;
-				function(*itr);
-				completed.insert(ptr);
-				if (itr == to) break;
-			}
-		}
-	}
-	//! Buffer
-	Buffer::Item Buffer::add(const std::weak_ptr<Object>& object)
-	{
-		return { this, data.insert(data.end(), object) };
-	}
-	Buffer::Item Buffer::add(const std::weak_ptr<Collection>& collection)
-	{
-		return { this, data.insert(data.end(), collection) };
-	}
-	void Buffer::remove(Item& item) { item.destroy(); }
-	void Buffer::for_each_item(
-		const std::function<void(std::shared_ptr<Object>& object)>& object_function,
-		const std::function<void(std::shared_ptr<Collection>& collection)>& collection_function)
-	{
-		if (data.empty()) return;
+    void Object::set_render_size(const SDL_FPoint& size)
+    {
+        config.set_render_size(size, Utilities::Render::get_size_from_rect(get_src_rect()));
+    }
 
-		auto itr = data.begin();
-		while (itr != data.end())
-		{
-			if (std::holds_alternative<std::weak_ptr<Object>>(*itr))
-			{
-				auto& weak = std::get<std::weak_ptr<Object>>(*itr);
-				if (weak.expired())
-				{
-					itr = data.erase(itr);
-					continue;
-				}
-				auto shared = weak.lock();
-				if (!shared)
-				{
-					itr = data.erase(itr);
-					continue;
-				}
-				object_function(shared);
-				++itr;
-			}
-			else if (std::holds_alternative<std::weak_ptr<Collection>>(*itr))
-			{
-				auto& weak = std::get<std::weak_ptr<Collection>>(*itr);
-				if (weak.expired())
-				{
-					itr = data.erase(itr);
-					continue;
-				}
-				auto shared = weak.lock();
-				if (!shared)
-				{
-					itr = data.erase(itr);
-					continue;
-				}
-				collection_function(shared);
-				++itr;
-			}
-		}
-	}
-	// ::Buffer::Item
-	void Buffer::Item::destroy()
-	{
-		if (parent && item != parent->data.end())
-		{
-			parent->data.erase(item);
-			item = parent->data.end();
-		}
-	}
-	bool Buffer::Item::is_valid() const
-	{
-		if (!(parent && item != parent->data.end())) return false;
-		if (std::holds_alternative<std::weak_ptr<Object>>(*item))
-		{
-			if (const auto& weak = std::get<std::weak_ptr<Object>>(*item);
-				!Floor::Utilities::Pointer::check_weak(weak)) return false;
-		}
-		else if (std::holds_alternative<std::weak_ptr<Collection>>(*item))
-		{
-			if (const auto& weak = std::get<std::weak_ptr<Collection>>(*item);
-				!Floor::Utilities::Pointer::check_weak(weak)) return false;
-		}
-		return true;
-	}
-	Buffer::Item::Item(Buffer* render_buffer) :
-		parent(render_buffer)
-	{
-	}
-	Buffer::Item::Item(Buffer* render_buffer, Container::iterator item) :
-		parent(render_buffer), item(std::move(item))
-	{
-	}
+    void Object::set_render_size(const float& value)
+    {
+        set_render_size({value, value});
+    }
+
+    bool Object::render(const RenderConfig& parent, const SDL_FPoint& multiple) const
+    {
+        if (!config.is_visible() || !parent.is_visible()) return false;
+        const auto texture = Utilities::Pointer::check_weak(src);
+        if (!texture) return false;
+
+        const auto src_rect = get_src_rect();
+        const auto src_size = Utilities::Render::get_size_from_rect(src_rect);
+        auto dst_rect = get_dst_rect(parent.render_pos);
+        dst_rect.x *= multiple.x; dst_rect.y *= multiple.y; dst_rect.w *= multiple.x; dst_rect.h *= multiple.y;
+        const auto dst_size = Utilities::Render::get_size_from_rect(dst_rect);
+        const SDL_FPoint origin_point = config.anchor_point.get_anchor_pos(src_size, dst_size);
+        const uint8_t alpha = config.alpha.get_value() * parent.alpha.get_percent();
+
+        if (!SDL_SetTextureBlendMode(texture.get(), config.blend_mode)
+            || !SDL_SetTextureAlphaMod(texture.get(), alpha)
+            || !SDL_SetTextureColorMod(texture.get(), config.color.r, config.color.g, config.color.b))
+            throw Exceptions::SDL_Exception();
+
+        if (!SDL_RenderTextureRotated(renderer, texture.get(), &src_rect,
+                                      &dst_rect, config.angle, &origin_point, config.flip_mode.get_mode()))
+            throw Exceptions::SDL_Exception();
+        return true;
+    }
+
+    Object::Object(
+        const Texture& texture,
+        const SDL_FPoint& render_pos,
+        const AnchorPoint& anchor_point) :
+        src(texture), config(render_pos, anchor_point)
+    {
+    }
+
+    Object::Object(
+        const Texture& texture,
+        const SDL_FPoint& render_pos,
+        const AnchorPoint::Type& anchor_type)
+        : src(texture), config(render_pos, anchor_type, get_size(texture))
+    {
+    }
+
+    //! Collection
+    void Collection::for_in_range(const std::function<void(Container::const_reference item)>& function,
+                                  const bool no_duplicate) const
+    {
+        std::unordered_set<void*> completed{};
+
+        if (range.empty())
+        {
+            auto itr = data.begin();
+            while (itr != data.end())
+            {
+                const auto next = std::next(itr);
+                function(*itr);
+                itr = next;
+            }
+        }
+        else
+            for (auto& [from, to] : range)
+            {
+                static constexpr auto get_ptr = [](const Container::value_type& item) -> void*
+                {
+                    if (std::holds_alternative<std::shared_ptr<Object>>(item))
+                        return std::get<std::shared_ptr<Object>>(item).get();
+                    if (std::holds_alternative<std::shared_ptr<Collection>>(item))
+                        return std::get<std::shared_ptr<Collection>>(item).get();
+                    return nullptr;
+                };
+
+                auto itr = from;
+                while (itr != data.end())
+                {
+                    const auto next = std::next(itr);
+                    const auto ptr = get_ptr(*itr);
+                    if (no_duplicate && completed.contains(ptr)) continue;
+                    completed.insert(ptr);
+
+                    function(*itr);
+                    if (itr == to) break;
+                    itr = next;
+                }
+            }
+    }
+    void Collection::for_in_range(
+        const std::function<void(Container::reference& item)>& function,
+        const bool no_duplicate)
+    {
+        std::unordered_set<void*> completed{};
+
+        if (range.empty())
+        {
+            auto itr = data.begin();
+            while (itr != data.end())
+            {
+                const auto next = std::next(itr);
+                function(*itr);
+                itr = next;
+            }
+        }
+        else
+            for (auto& [from, to] : range)
+            {
+                static constexpr auto get_ptr = [](const Container::value_type& item) -> void*
+                {
+                    if (std::holds_alternative<std::shared_ptr<Object>>(item))
+                        return std::get<std::shared_ptr<Object>>(item).get();
+                    if (std::holds_alternative<std::shared_ptr<Collection>>(item))
+                        return std::get<std::shared_ptr<Collection>>(item).get();
+                    return nullptr;
+                };
+
+                auto itr = from;
+                while (itr != data.end())
+                {
+                    const auto next = std::next(itr);
+                    const auto ptr = get_ptr(*itr);
+                    if (no_duplicate && completed.contains(ptr)) continue;
+                    completed.insert(ptr);
+
+                    function(*itr);
+                    if (itr == to) break;
+                    itr = next;
+                }
+            }
+    }
+
+    void Collection::render(const RenderConfig& parent, const SDL_FPoint& multiple) const
+    {
+        using Utilities::Math::FPoint::operator-;
+
+        const auto final = RenderConfig
+        {
+            config.render_pos - parent.render_pos,
+            config.alpha.get_percent() * parent.alpha.get_percent(),
+            config.visible && parent.visible
+        };
+        if (!final.is_visible()) return;
+
+        for_in_range([&final, &multiple](Container::const_reference item)
+        {
+            if (std::holds_alternative<std::shared_ptr<Object>>(item))
+            {
+                const auto& object = std::get<std::shared_ptr<Object>>(item);
+                object->render(final, multiple);
+            }
+            if (std::holds_alternative<std::shared_ptr<Collection>>(item))
+            {
+                const auto& collection = std::get<std::shared_ptr<Collection>>(item);
+                collection->render(final, multiple);
+            }
+        }, true);
+    }
+
+    //! Buffer
+    void for_each(
+        Buffer& buffer,
+        const std::function<void(std::shared_ptr<Object>& object)>& object_function,
+        const std::function<void(std::shared_ptr<Collection>& collection)>& collection_function,
+        const bool collect_garbage)
+    {
+        if (buffer.empty()) return;
+
+        auto itr = buffer.begin();
+        while (itr != buffer.end())
+        {
+            if (std::holds_alternative<std::weak_ptr<Object>>(*itr))
+            {
+                auto& weak = std::get<std::weak_ptr<Object>>(*itr);
+                auto shared = Utilities::Pointer::check_weak(weak);
+                if (!shared)
+                {
+                    if (collect_garbage)
+                        itr = buffer.erase(itr);
+                    else ++itr;
+                    continue;
+                }
+                object_function(shared);
+                ++itr;
+            }
+            else if (std::holds_alternative<std::weak_ptr<Collection>>(*itr))
+            {
+                auto& weak = std::get<std::weak_ptr<Collection>>(*itr);
+                auto shared = Utilities::Pointer::check_weak(weak);
+                if (!shared)
+                {
+                    if (collect_garbage)
+                        itr = buffer.erase(itr);
+                    else ++itr;
+                    continue;
+                }
+                collection_function(shared);
+                ++itr;
+            }
+        }
+    }
 }

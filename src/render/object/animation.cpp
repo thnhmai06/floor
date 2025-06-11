@@ -5,7 +5,7 @@ namespace Floor::Render::Object
 {
 	void AnimationObject::update()
 	{
-		if (const auto locked_timer = Floor::Utilities::Pointer::check_weak(timer))
+		if (const auto locked_timer = Utilities::Pointer::check_weak(timer))
 		{
 			const auto current_time = locked_timer->get_last_point();
 
@@ -18,7 +18,7 @@ namespace Floor::Render::Object
 				if (loop_type == LoopType::LoopOnce)
 					current_frame = std::clamp(current_frame + frame_elapsed, 0LL, frame_count - 1);
 				else
-					current_frame = Floor::Utilities::Math::circle_mod(current_frame + frame_elapsed, frame_count);
+					current_frame = Utilities::Math::circle_mod(current_frame + frame_elapsed, frame_count);
 				last_frame_time.value() += frame_elapsed * frame_delay;
 			}
 			else
@@ -33,7 +33,7 @@ namespace Floor::Render::Object
 		std::weak_ptr<const Timer> timer,
 		std::vector<Memory::Item> frames, const int64_t& frame_delay,
 		const LoopType& loop_type,
-		const OriginType& origin_type,
+		const AnchorLocation& origin_type,
 		const SDL_FPoint& render_pos)
 		: Object(frames.front(), origin_type, render_pos),
 		timer(std::move(timer)), frames(std::move(frames)),
@@ -43,7 +43,7 @@ namespace Floor::Render::Object
 	AnimationObject::AnimationObject(
 		std::weak_ptr<const Timer> timer,
 		std::vector<Memory::Item> frames, const int64_t& frame_delay,
-		const OriginPoint& custom_origin,
+		const AnchorPoint& custom_origin,
 		const LoopType& loop_type,
 		const SDL_FPoint& render_pos)
 		: Object(frames.front(), custom_origin, render_pos),

@@ -1,48 +1,30 @@
 ﻿#pragma once
 #include "floor/render/object.h"
 
-namespace Floor::Render::Layer
+namespace Floor::Render
 {
-	using namespace Render::Texture;
+    struct Layer
+    {
+        Buffer buffer;
+        RenderConfig config;
 
-	struct Layer
-	{
-		Object::Buffer buffer;
-		std::unique_ptr<Config::RenderConfig> config; // render pos đóng vai trò là camera centre
+        virtual void render(const SDL_FPoint& multiple = {1, 1});
 
-	protected:
-		virtual void put_object_into_layer(Config::ObjectConfig& object) const;
-		virtual void put_object_out_layer(Config::ObjectConfig& object) const;
-		virtual void render_object(Object::Object& object, const Config::RenderConfig& parent = {});
-		virtual void render_collection(Object::Collection& collection, const Config::RenderConfig& parent = {});
+        explicit Layer(const SDL_FPoint& top_left_pos = {0, 0});
+        virtual ~Layer() = default;
+    };
 
-	public:
-		virtual void render();
-		virtual void clear();
+    struct TextureLayer : Layer
+    {
+        Texture target; // access mode là SDL_TEXTUREACCESS_STREAMING
+        // Grid sẽ mô phỏng việc đặt một lưới grid (đều nhau) lên texture, khi
+        // đó tọa độ và kích cỡ object sẽ đối chiếu trên lưới đó
+        std::optional<SDL_FPoint> grid = std::nullopt;
 
-		explicit Layer(const SDL_FPoint& camera_centre_pos = {0, 0});
-		virtual ~Layer() = default;
-	};
+        void render(bool change_target_when_finish, const SDL_FPoint& multiple = {1, 1});
+        void render(const SDL_FPoint& multiple = {1, 1}) override;
+        void clear();
 
-	//! Chú ý: Khi dùng TextureLayer cần chú ý đến việc
-	//! cộng màu (ADD Blend mode) vì nó phụ thuộc texture trước nó
-	struct TextureLayer : Layer
-	{
-	protected:
-		void put_object_into_layer(Config::ObjectConfig& object) const override;
-		void put_object_out_layer(Config::ObjectConfig& object) const override;
-
-	public:
-		Memory::Item target_texture;
-		// Grid sẽ mô phỏng việc đặt một lưới grid_size đều nhau lên texture, khi
-		// đó tọa độ vị trí on_before_render sẽ tương ứng đặt lên tọa độ trên lưới đó
-		std::optional<SDL_FPoint> grid_size = std::nullopt;
-
-		void render_no_change_back_target(bool clear = false);
-		void render() override;
-		void clear() override;
-
-		explicit TextureLayer(Memory::Item texture,
-			const SDL_FPoint& centre_camera_pos = { 0, 0 });
-	};
+        explicit TextureLayer(const Texture& texture, const SDL_FPoint& top_left_pos = {0, 0});
+    };
 }

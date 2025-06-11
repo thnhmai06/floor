@@ -4,6 +4,7 @@
 
 namespace Floor::Render::Object
 {
+
 	//! HorizontalString
 	void HorizontalString::update()
 	{
@@ -24,7 +25,7 @@ namespace Floor::Render::Object
 			}
 			if (!deft.is_valid()) return;
 			while (data.size() < string->size())
-				data.emplace_back(std::make_shared<Object>(deft, OriginPoint{ 0, 0 }));
+				data.emplace_back(std::make_shared<Object>(deft, AnchorPoint{ 0, 0 }));
 		}
 
 		auto current_character = data.begin();
@@ -100,11 +101,11 @@ namespace Floor::Render::Object
 		const Alphabet* alphabet,
 		const SDL_FPoint& render_pos,
 		const SDL_FPoint& character_render_size,
-		const Floor::Render::OriginType& origin_type)
+		const Render::AnchorLocation& origin_type)
 		: string(string), skin(skin), alphabet(alphabet),
 		render_pos(render_pos),
 		origin_point_in_percent(
-			OriginPoint::translate_origin_type_to_point(origin_type, { .x = 1, .y = 1 })
+			AnchorPoint::from_type(origin_type, { .x = 1, .y = 1 })
 		),
 		character_render_size(character_render_size)
 	{
@@ -127,7 +128,7 @@ namespace Floor::Render::Object
 		std::string string, const Memory* skin,
 		const Alphabet* alphabet, const SDL_FPoint& render_pos,
 		const SDL_FPoint& character_render_size,
-		const Floor::Render::OriginType& origin_type)
+		const Render::AnchorLocation& origin_type)
 		: HorizontalString(&value, skin, alphabet, render_pos, character_render_size, origin_type),
 		value(std::move(string))
 	{

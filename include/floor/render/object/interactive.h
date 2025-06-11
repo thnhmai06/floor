@@ -17,14 +17,14 @@ namespace Floor::Render::Object
 			Memory::Item texture,
 			const Events::Event::External::Buffer& event_buffer,
 			std::shared_ptr<Events::Condition::External::Condition> condition,
-			const OriginType& origin_type = OriginType::Centre,
+			const AnchorLocation& origin_type = AnchorLocation::Centre,
 			const SDL_FPoint& render_pos = { 0, 0 },
 			std::function<void(Object* object, const Events::Event::External::Event& event)> on_event = nullptr);
 		explicit InteractiveObject(
 			Memory::Item texture,
 			const Events::Event::External::Buffer& event_buffer,
 			std::shared_ptr<Events::Condition::External::Condition> condition,
-			const Config::OriginPoint& custom_origin,
+			const Config::AnchorPoint& custom_origin,
 			const SDL_FPoint& render_pos = { 0, 0 },
 			std::function<void(Object* object, const Events::Event::External::Event& event)> on_event = nullptr);
 	};

@@ -21,7 +21,7 @@ namespace Floor::Audio
 
     //! Music
     template <>
-    inline Music load(Music::element_type* raw)
+    inline Music load(Mix_Music* raw)
     {
         return {raw, Mix_FreeMusic};
     }
@@ -36,7 +36,7 @@ namespace Floor::Audio
 
     //! Effect
     template <>
-    inline Effect load(Effect::element_type* raw)
+    inline Effect load(Mix_Chunk* raw)
     {
         return {raw, Mix_FreeChunk};
     }

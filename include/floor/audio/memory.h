@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <unordered_set>
 
-#include "floor/audio/type.h"
+#include "floor/audio/audio.h"
 
 namespace fs = std::filesystem;
 
@@ -52,9 +52,10 @@ namespace Floor::Audio
                     if (!override && target.contains(name)) continue;
                     try
                     {
-                        target.insert(name, load<Audio>(entry.path()));
+                        target.emplace(name, load<Audio>(entry.path()));
+                        loaded.insert(name);
                     }
-                    catch (const Exceptions::SDL_Exception&)
+                    catch (...)
                     {
                         if (!no_except) throw;
                     }

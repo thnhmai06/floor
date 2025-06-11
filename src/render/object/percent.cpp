@@ -10,12 +10,12 @@ namespace Floor::Render::Object
 		SDL_FPoint render_size = render_size_when_full;
 		if (horizontal)
 		{
-			src_rect_in_percent.w = static_cast<float>(*percent);
+			src_rect.w = static_cast<float>(*percent);
 			render_size.x = render_size_when_full.x * static_cast<float>(*percent);
 		}
 		if (vertical)
 		{
-			src_rect_in_percent.h = static_cast<float>(*percent);
+			src_rect.h = static_cast<float>(*percent);
 			render_size.y = render_size_when_full.y * static_cast<float>(*percent);
 		}
 		set_render_size(render_size);
@@ -25,7 +25,7 @@ namespace Floor::Render::Object
 		const Memory::Item& texture,
 		const SDL_FPoint& render_size_when_full,
 		const double* percent, const bool horizontal, const bool vertical,
-		const OriginType& origin_type, const SDL_FPoint& render_pos)
+		const AnchorLocation& origin_type, const SDL_FPoint& render_pos)
 		: Object(texture, origin_type, render_pos),
 		render_size_when_full(render_size_when_full), percent(percent), horizontal(horizontal), vertical(vertical)
 	{
@@ -33,7 +33,7 @@ namespace Floor::Render::Object
 	PercentObject::PercentObject(
 		const Memory::Item& texture,
 		const SDL_FPoint& render_size_when_full,
-		const double* percent, const Config::OriginPoint& custom_origin,
+		const double* percent, const Config::AnchorPoint& custom_origin,
 		const bool horizontal, const bool vertical,
 		const SDL_FPoint& render_pos)
 		: Object(texture, custom_origin, render_pos),
@@ -44,14 +44,14 @@ namespace Floor::Render::Object
 	//! StaticPercentObject
 	StaticPercentObject::StaticPercentObject(const Memory::Item& texture,
 		const SDL_FPoint& render_size_when_full, const bool horizontal, const bool vertical,
-		const OriginType& origin_type, const SDL_FPoint& render_pos)
+		const AnchorLocation& origin_type, const SDL_FPoint& render_pos)
 		: PercentObject(texture, render_size_when_full, nullptr, horizontal, vertical, origin_type, render_pos)
 	{
 		PercentObject::percent = &percent;
 		PercentObject::update();
 	}
 	StaticPercentObject::StaticPercentObject(const Memory::Item& texture,
-		const SDL_FPoint& render_size_when_full, const Config::OriginPoint& custom_origin,
+		const SDL_FPoint& render_size_when_full, const Config::AnchorPoint& custom_origin,
 		const bool horizontal, const bool vertical, const SDL_FPoint& render_pos)
 		: PercentObject(texture, render_size_when_full, nullptr, custom_origin, horizontal, vertical, render_pos)
 	{

@@ -32,13 +32,13 @@ namespace Floor::Audio
         friend struct Mixer;
 
     protected:
-        Memory<Music>::const_iterator current_music; // lazy
+        Music::weak_type current_music; // lazy
 
     public:
         Volume volume;
 
-        bool play(const Memory<Music>::const_iterator& music, bool pause = false, int loops = 0);
-        const Memory<Music>::const_iterator& get_current_music();
+        bool play(const Music& music, bool pause = false, int loops = 0);
+        const Music::weak_type& get_current_music();
         Events::Timing::Time get_position();
         static void seek(const int64_t& new_pos);
         static bool has_song();
@@ -79,7 +79,7 @@ namespace Floor::Audio
 
     public:
         Volume volume;
-        int play(const Memory<Effect>::const_iterator<Effect>& sound,
+        int play(const Effect& sound,
             const double& volume = 1, const int& loops = 0, const int& channel = -1);
         static void stop(const int& channel = -1);
 

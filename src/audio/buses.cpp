@@ -22,12 +22,12 @@ namespace Floor::Audio
     }
 
     // ::
-    bool Bus<Music>::play(const Memory<Music>::const_iterator& music, const bool pause, const int loops)
+    bool Bus<Music>::play(const Music& music, const bool pause, const int loops)
     {
-        if (music == Memory<Music>::end()) return false;
+        if (!music) return false;
 
         if (has_song()) stop();
-        Mix_PlayMusic(music->second.get(), loops);
+        Mix_PlayMusic(music.get(), loops);
         volume.set(); // chỉ set được volume khi có nhạc đang phát
         if (pause)
         {
@@ -41,16 +41,16 @@ namespace Floor::Audio
     bool Bus<Music>::has_song() { return Mix_PlayingMusic() != 0; }
     bool Bus<Music>::is_playing() { return has_song() && !Mix_PausedMusic(); }
 
-    const Memory<Music>::const_iterator& Bus<Music>::get_current_music()
+    const Music::weak_type& Bus<Music>::get_current_music()
     {
-        if (!has_song()) current_music = Memory<Music>::end();
+        if (!has_song()) current_music = Music::weak_type();
         return current_music;
     }
 
     Events::Timing::Time Bus<Music>::get_position()
     {
-        if (const auto current = get_current_music(); current != Memory<Music>::end())
-            return static_cast<Events::Timing::Time>(std::round(Mix_GetMusicPosition(current->second.get()) * 1000.0));
+        if (const auto current = Utilities::Pointer::check_weak(get_current_music()))
+            return static_cast<Events::Timing::Time>(std::round(Mix_GetMusicPosition(current.get()) * 1000.0));
         return -1;
     }
 
@@ -67,7 +67,7 @@ namespace Floor::Audio
     void Bus<Music>::stop()
     {
         Mix_HaltMusic();
-        current_music = Memory<Music>::end();
+        current_music = Music::weak_type();
     }
 
     Bus<Music>::Bus(const double& volume) { this->volume.set(volume); }
@@ -118,12 +118,12 @@ namespace Floor::Audio
 
     // ::
     int Bus<Effect>::play(
-        const Memory<Effect>::const_iterator& sound,
+        const Effect& sound,
         const double& volume, const int& loops, const int& channel)
     {
-        if (sound == Memory<Effect>::end()) return -1;
+        if (!sound) return -1;
 
-        const auto out_channel = Mix_PlayChannel(channel, sound->second.get(), loops);
+        const auto out_channel = Mix_PlayChannel(channel, sound.get(), loops);
         if (out_channel < 0)
             throw Exceptions::SDL_Exception();
         this->volume.set(volume, out_channel);
